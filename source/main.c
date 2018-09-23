@@ -41,18 +41,6 @@ Additionally, one struct uses code licensed under the BSD 3-clause. See LICENSE 
 
  #define NTP_TIMESTAMP_DELTA 2208988800ull
 
-void waitInput(void)
-{
-        while(appletMainLoop())
-        {
-            hidScanInput();
-            if(hidKeysDown(CONTROLLER_P1_AUTO))
-                break;
-            gfxFlushBuffers();
-            gfxSwapBuffers();
-        }
-}
-
 // https://www.cisco.com/c/en/us/about/press/internet-protocol-journal/back-issues/table-contents-58/154-ntp.html
 // Struct adapted from https://github.com/lettier/ntpclient , see LICENSE
 typedef struct
@@ -95,7 +83,6 @@ int main(int argc, char **argv)
     if(R_FAILED(rs))
     {
         printf("Failed to init time services\n");
-        waitInput();
         goto done;
     }
     
@@ -104,7 +91,6 @@ int main(int argc, char **argv)
     if(R_FAILED(rs))
     {
         printf("Failed to init socket services\n");
-        waitInput();
         goto done;
     }
     
@@ -126,7 +112,6 @@ int main(int argc, char **argv)
     if(sockfd < 0)
     {
         printf("Failed to open socket\n");
-        waitInput();
         goto done;
     }
     
@@ -137,7 +122,6 @@ int main(int argc, char **argv)
     if((server = gethostbyname(server_name)) == NULL)
     {
         printf("Gethostbyname failed: %x\n", errno);
-        waitInput();
         goto done;
     }
     
@@ -154,7 +138,6 @@ int main(int argc, char **argv)
     if((res = connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
     {
         printf("Connect failed: %x %x\n", res, errno);
-        waitInput();
         goto done;        
     }
     
@@ -164,7 +147,6 @@ int main(int argc, char **argv)
     if((res = send(sockfd, (char *)&packet, sizeof(ntp_packet), 0)) < 0)
     {
         printf("Error writing to socket: %x %x\n", res, errno);
-        waitInput();
         goto done;         
     }
     
@@ -174,7 +156,6 @@ int main(int argc, char **argv)
     if((res = recv(sockfd, (char *)&packet, sizeof(ntp_packet), 0)) < sizeof(ntp_packet))
     {
         printf("Error reading from socket: %x %x\n", res, errno);
-        waitInput();
         goto done;         
     }
     
@@ -197,7 +178,6 @@ int main(int argc, char **argv)
     if(R_FAILED(rs))
     {
         printf("Failed to set NetworkSystemClock, %x\n", rs);
-        waitInput();
     }
     else
         printf("Successfully set NetworkSystemClock\n");
