@@ -7,7 +7,7 @@ To fix this, go into System Settings, scroll down to System, pick Date and Time,
 You can then turn it off afterward if desired, but this toggle step will need to be repeated each time you run NX-ntpc.
 
 # How do I compile it?
-Install [devkitPro and devkitA64 (along with libnx)](https://devkitpro.org/wiki/Getting_Started), browse to the directory containing this project's `Makefile`, and type `make`.
+Install [devkitA64 (along with libnx)](https://devkitpro.org/wiki/Getting_Started), browse to the directory containing this project's `Makefile`, and type `make`.
 
 # How do I use it?
 Run the NRO from the hbmenu, or send it over nxlink. An internet connection is required for this program to work, but it does not contact Nintendo's servers, so it should be friendly in 90DNS and other Nintendo-blocked environments.
