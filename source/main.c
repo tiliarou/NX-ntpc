@@ -86,6 +86,7 @@ int main(int argc, char **argv)
 {
     const char *server_name = "0.pool.ntp.org";
     const uint16_t port = 123;
+    int sockfd = 0;
     
     gfxInitDefault();
     consoleInit(NULL);
@@ -121,7 +122,7 @@ int main(int argc, char **argv)
     struct sockaddr_in serv_addr;
     struct hostent *server;
     
-    int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(sockfd < 0)
     {
         printf("Failed to open socket\n");

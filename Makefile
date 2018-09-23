@@ -38,6 +38,13 @@ INCLUDES	:=	include
 EXEFS_SRC	:=	exefs_src
 #ROMFS	:=	romfs
 
+VERSION_MAJOR := 1
+VERSION_MINOR := 0
+VERSION_MICRO := 0
+
+APP_TITLE   := NX-ntpc
+APP_AUTHOR  := thedax
+APP_VERSION := ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_MICRO}
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
