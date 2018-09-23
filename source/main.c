@@ -165,15 +165,6 @@ int main(int argc, char **argv)
     
     printf("Time received from server: %s\n", ctime((const time_t *)&tim));
  
-#if 0 
-    for(int i = 0; i < 48; ++i)
-    {
-        printf("%x ", reinterpret[i]);
-    }
-    
-    printf("\n");
-#endif
-
     rs = timeSetCurrentTime(TimeType_NetworkSystemClock, (uint64_t)tim);
     if(R_FAILED(rs))
     {
