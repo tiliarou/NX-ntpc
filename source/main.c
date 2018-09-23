@@ -1,3 +1,30 @@
+/* This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <http://unlicense.org>
+
+Additionally, one struct uses code licensed under the BSD 3-clause. See LICENSE for more information. */
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +52,9 @@ void waitInput(void)
             gfxSwapBuffers();
         }
 }
-    
+
+// https://www.cisco.com/c/en/us/about/press/internet-protocol-journal/back-issues/table-contents-58/154-ntp.html
+// Struct adapted from https://github.com/lettier/ntpclient , see LICENSE
 typedef struct
 {
   unsigned mode: 3;        // 3 = client, others are values we don't care about
@@ -37,7 +66,7 @@ typedef struct
   uint8_t precision;       // Precision of the local clock.
 
   uint32_t rootDelay;      // Total round trip delay time.
-  uint32_t rootDispersion; // Max error aloud from primary clock source.
+  uint32_t rootDispersion; // Max error allowed from primary clock source.
   uint32_t refId;          // Reference clock identifier.
 
   uint32_t refTm_s;        // Reference time-stamp seconds.
@@ -79,8 +108,10 @@ int main(int argc, char **argv)
     }
     
     printf("Socket services initialized\n");
+    
     ntp_packet packet;
     memset(&packet, 0, sizeof(ntp_packet));
+    
     packet.li = 0;
     packet.vn = 4; // NTP version 4
     packet.mode = 3; // Client mode
