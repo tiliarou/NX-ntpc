@@ -11,3 +11,7 @@ Install [devkitPro and devkitA64 (along with libnx)](https://devkitpro.org/wiki/
 
 # How do I use it?
 Run the NRO from the hbmenu, or send it over nxlink. An internet connection is required for this program to work, but it does not contact Nintendo's servers, so it should be friendly in 90DNS and other Nintendo-blocked environments.
+
+
+*Sample output of a successful use.*
+![image](https://i.imgur.com/fu7bE87.png)
