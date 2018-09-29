@@ -70,6 +70,13 @@ typedef struct
   uint32_t txTm_f;         // Transmit time-stamp fraction of a second.
 } ntp_packet;
 
+void gfxWait(void)
+{
+    gfxWaitForVsync();   
+    gfxFlushBuffers();
+    gfxSwapBuffers();
+}
+
 int main(int argc, char **argv)
 {
     const char *server_name = "0.pool.ntp.org";
@@ -87,6 +94,7 @@ int main(int argc, char **argv)
     }
     
     printf("Time services initialized\n");
+    gfxWait();
     rs = socketInitializeDefault();
     if(R_FAILED(rs))
     {
@@ -95,6 +103,7 @@ int main(int argc, char **argv)
     }
     
     printf("Socket services initialized\n");
+    gfxWait();
     
     ntp_packet packet;
     memset(&packet, 0, sizeof(ntp_packet));
@@ -116,9 +125,9 @@ int main(int argc, char **argv)
     }
     
     printf("Opened socket\n");
-    
     printf("Attempting to connect to %s\n", server_name);
-        
+    gfxWait();
+    
     if((server = gethostbyname(server_name)) == NULL)
     {
         printf("Gethostbyname failed: %x\n", errno);
@@ -142,6 +151,7 @@ int main(int argc, char **argv)
     }
     
     printf("Connected to 0.pool.ntp.org with result: %x %x\nSending time request...\n", res, errno);
+    gfxWait();
     
     errno = 0;
     if((res = send(sockfd, (char *)&packet, sizeof(ntp_packet), 0)) < 0)
@@ -151,6 +161,7 @@ int main(int argc, char **argv)
     }
     
     printf("Sent time request with result: %x %x, waiting for response...\n", res, errno);
+    gfxWait();
     
     errno = 0; 
     if((res = recv(sockfd, (char *)&packet, sizeof(ntp_packet), 0)) < sizeof(ntp_packet))
@@ -164,7 +175,8 @@ int main(int argc, char **argv)
     time_t tim = (time_t) (packet.txTm_s - NTP_TIMESTAMP_DELTA);
     
     printf("Time received from server: %s\n", ctime((const time_t *)&tim));
- 
+    gfxWait();
+    
     rs = timeSetCurrentTime(TimeType_NetworkSystemClock, (uint64_t)tim);
     if(R_FAILED(rs))
     {
@@ -173,6 +185,7 @@ int main(int argc, char **argv)
     else
         printf("Successfully set NetworkSystemClock\n");
     
+    gfxWait();
 done:
     close(sockfd);
     printf("Press PLUS to quit.\n");
@@ -184,9 +197,8 @@ done:
         u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
 
         if (kDown & KEY_PLUS) break;
-
-        gfxFlushBuffers();
-        gfxSwapBuffers();
+        
+        gfxWait();
     }
     
     socketExit();
