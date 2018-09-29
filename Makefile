@@ -40,7 +40,7 @@ EXEFS_SRC	:=	exefs_src
 
 VERSION_MAJOR := 1
 VERSION_MINOR := 0
-VERSION_MICRO := 0
+VERSION_MICRO := 1
 
 APP_TITLE   := NX-ntpc
 APP_AUTHOR  := thedax
