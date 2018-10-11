@@ -36,6 +36,7 @@ Additionally, one struct uses code licensed under the BSD 3-clause. See LICENSE 
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
+#include <stdarg.h>
 
 #include <switch.h>
 
@@ -70,11 +71,27 @@ typedef struct
   uint32_t txTm_f;         // Transmit time-stamp fraction of a second.
 } ntp_packet;
 
-void gfxWait(void)
+void serviceCleanup(void)
 {
-    gfxWaitForVsync();   
-    gfxFlushBuffers();
-    gfxSwapBuffers();
+    setsysExit();
+    socketExit();
+    timeExit();
+    consoleExit(NULL);
+}
+
+void print(const char *msg)
+{
+    puts(msg);
+    consoleUpdate(NULL);
+}
+
+void printWithArgs(const char *msg, ...)
+{
+    va_list args;
+    va_start(args, msg);
+    vprintf(msg, args);
+    va_end(args);
+    consoleUpdate(NULL);
 }
 
 int main(int argc, char **argv)
@@ -83,27 +100,25 @@ int main(int argc, char **argv)
     const uint16_t port = 123;
     int sockfd = 0;
     
-    gfxInitDefault();
     consoleInit(NULL);
 
     Result rs = timeInitialize();
     if(R_FAILED(rs))
     {
-        printf("Failed to init time services\n");
+        print("Failed to init time services");
         goto done;
     }
     
-    printf("Time services initialized\n");
-    gfxWait();
+    print("Time services initialized\n");
+
     rs = socketInitializeDefault();
     if(R_FAILED(rs))
     {
-        printf("Failed to init socket services\n");
+        print("Failed to init socket services");
         goto done;
     }
     
-    printf("Socket services initialized\n");
-    gfxWait();
+    print("Socket services initialized");
     
     ntp_packet packet;
     memset(&packet, 0, sizeof(ntp_packet));
@@ -120,17 +135,16 @@ int main(int argc, char **argv)
     sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(sockfd < 0)
     {
-        printf("Failed to open socket\n");
+        print("Failed to open socket");
         goto done;
     }
     
-    printf("Opened socket\n");
-    printf("Attempting to connect to %s\n", server_name);
-    gfxWait();
+    print("Opened socket");
+    printWithArgs("Attempting to connect to %s\n", server_name);
     
     if((server = gethostbyname(server_name)) == NULL)
     {
-        printf("Gethostbyname failed: %x\n", errno);
+        printWithArgs("Gethostbyname failed: %x\n", errno);
         goto done;
     }
     
@@ -146,27 +160,25 @@ int main(int argc, char **argv)
     int res = 0;
     if((res = connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
     {
-        printf("Connect failed: %x %x\n", res, errno);
+        printWithArgs("Connect failed: %x %x\n", res, errno);
         goto done;        
     }
     
-    printf("Connected to 0.pool.ntp.org with result: %x %x\nSending time request...\n", res, errno);
-    gfxWait();
+    printWithArgs("Connected to 0.pool.ntp.org with result: %x %x\nSending time request...\n", res, errno);
     
     errno = 0;
     if((res = send(sockfd, (char *)&packet, sizeof(ntp_packet), 0)) < 0)
     {
-        printf("Error writing to socket: %x %x\n", res, errno);
+        printWithArgs("Error writing to socket: %x %x\n", res, errno);
         goto done;         
     }
     
-    printf("Sent time request with result: %x %x, waiting for response...\n", res, errno);
-    gfxWait();
+    printWithArgs("Sent time request with result: %x %x, waiting for response...\n", res, errno);
     
     errno = 0; 
     if((res = recv(sockfd, (char *)&packet, sizeof(ntp_packet), 0)) < sizeof(ntp_packet))
     {
-        printf("Error reading from socket: %x %x\n", res, errno);
+        printWithArgs("Error reading from socket: %x %x\n", res, errno);
         goto done;         
     }
     
@@ -174,21 +186,61 @@ int main(int argc, char **argv)
 
     time_t tim = (time_t) (packet.txTm_s - NTP_TIMESTAMP_DELTA);
     
-    printf("Time received from server: %s\n", ctime((const time_t *)&tim));
-    gfxWait();
+    printWithArgs("Time received from server: %s\n", ctime((const time_t *)&tim));
     
     rs = timeSetCurrentTime(TimeType_NetworkSystemClock, (uint64_t)tim);
     if(R_FAILED(rs))
     {
-        printf("Failed to set NetworkSystemClock, %x\n", rs);
+        printWithArgs("Failed to set NetworkSystemClock, %x\n", rs);
     }
     else
-        printf("Successfully set NetworkSystemClock\n");
+        print("Successfully set NetworkSystemClock\n");
     
-    gfxWait();
+    rs = setsysInitialize();
+    if(R_FAILED(rs))
+    {
+        printWithArgs("setsysInitialize failed, %x\n", rs);
+        goto done;
+    }
+    
+    bool internetTimeSync;
+    rs = setsysGetFlag(60, &internetTimeSync);
+    if(R_FAILED(rs))
+    {
+        printWithArgs("Unable to detect if internet time sync is enabled, %x\n", rs);
+        goto done;        
+    }
+    
+    if(internetTimeSync == false)
+    {
+        print("Internet time sync is not enabled (enabling it will correct the time on the home screen, and this prompt will not appear again).\nPress A to enable internet time sync (and restart the console), or PLUS to quit.");
+        while(appletMainLoop())
+        {
+            hidScanInput();
+
+            u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
+
+            if (kDown & KEY_PLUS) goto cleanup;
+            if (kDown & KEY_A) 
+            {
+                rs = setsysSetFlag(60, true);
+                if(R_SUCCEEDED(rs))
+                {
+                    serviceCleanup();
+                    bpcInitialize();
+                    bpcRebootSystem();
+                    bpcExit();
+                }
+                
+                printWithArgs("Unable to enable internet time sync, %x\n", rs);
+            }
+
+            consoleUpdate(NULL);
+        }
+    }
+    
 done:
-    close(sockfd);
-    printf("Press PLUS to quit.\n");
+    print("Press PLUS to quit.");
 
     while(appletMainLoop())
     {
@@ -198,11 +250,10 @@ done:
 
         if (kDown & KEY_PLUS) break;
         
-        gfxWait();
+        consoleUpdate(NULL);
     }
-    
-    socketExit();
-    timeExit();
-    gfxExit();
+cleanup:
+    close(sockfd);
+    serviceCleanup();
     return 0;
 }
