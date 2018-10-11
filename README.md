@@ -2,9 +2,7 @@
 A crude NTP client for the Switch.
 
 # What's it do?
-It contacts a time server at http://ntp.org and sets the Nintendo Switch's clock appropriately. Note however, that it will not set the clock that you can see on the Home Screen.
-To fix this, go into System Settings, scroll down to System, pick Date and Time, then turn on "Synchronise Clock via Internet".
-You can then turn it off afterward if desired, but this toggle step will need to be repeated each time you run NX-ntpc.
+It contacts a time server at http://ntp.org and sets the Nintendo Switch's clock appropriately. Note however, that it will not set the clock that you can see on the Home Screen, unless "Synchronise Clock via Internet" (in System Settings -> System -> Date & Time) is already turned on.
 
 # How do I compile it?
 Install [devkitA64 (along with libnx)](https://devkitpro.org/wiki/Getting_Started), browse to the directory containing this project's `Makefile`, and type `make`.
