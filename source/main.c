@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 
     print("Opened socket");
     printWithArgs("Attempting to connect to %s\n", server_name);
-    errorno = 0;
+    errno = 0;
     if((server = gethostbyname(server_name)) == NULL)
     {
         printWithArgs("Gethostbyname failed: %x\n", errno);
