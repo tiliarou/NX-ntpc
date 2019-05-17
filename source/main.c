@@ -107,16 +107,16 @@ int main(int argc, char **argv)
     Result rs = timeInitialize();
     if(R_FAILED(rs))
     {
-        print("Failed to init time services");
+        printWithArgs("Failed to init time services, error code %x", rs);
         goto done;
     }
     
-    print("Time services initialized\n");
+    print("Time services initialized");
 
     rs = socketInitializeDefault();
     if(R_FAILED(rs))
     {
-        print("Failed to init socket services");
+        printWithArgs("Failed to init socket services, error code %x", rs);
         goto done;
     }
 
@@ -137,13 +137,13 @@ int main(int argc, char **argv)
     sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(sockfd < 0)
     {
-        print("Failed to open socket");
+        printWithArgs("Failed to open socket with error code %x\n", errno);
         goto done;
     }
 
     print("Opened socket");
     printWithArgs("Attempting to connect to %s\n", server_name);
-    
+    errorno = 0;
     if((server = gethostbyname(server_name)) == NULL)
     {
         printWithArgs("Gethostbyname failed: %x\n", errno);
