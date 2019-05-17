@@ -23,7 +23,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 For more information, please refer to <http://unlicense.org>
 
-Additionally, one struct uses code licensed under the BSD 3-clause. See LICENSE for more information. */
+Additionally, the ntp_packet struct uses code licensed under the BSD 3-clause. See LICENSE-THIRD-PARTY for more information. */
 
 #include <unistd.h>
 #include <stdio.h>
@@ -42,8 +42,9 @@ Additionally, one struct uses code licensed under the BSD 3-clause. See LICENSE 
 
  #define NTP_TIMESTAMP_DELTA 2208988800ull
 
+/* ------------- BEGIN BSD 3-CLAUSE LICENSED CODE-------------------- */
 // https://www.cisco.com/c/en/us/about/press/internet-protocol-journal/back-issues/table-contents-58/154-ntp.html
-// Struct adapted from https://github.com/lettier/ntpclient , see LICENSE
+// Struct adapted from https://github.com/lettier/ntpclient , see LICENSE-THIRD-PARTY for more information.
 typedef struct
 {
   unsigned mode: 3;        // 3 = client, others are values we don't care about
@@ -70,6 +71,7 @@ typedef struct
   uint32_t txTm_s;         // Transmit time-stamp seconds.
   uint32_t txTm_f;         // Transmit time-stamp fraction of a second.
 } ntp_packet;
+/* ------------- END BSD 3-CLAUSE LICENSED CODE-------------------- */
 
 void serviceCleanup(void)
 {
