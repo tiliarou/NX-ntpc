@@ -120,14 +120,14 @@ int main(int argc, char **argv)
     }
 
     print("Socket services initialized");
-    
+
     rs = nifmInitialize();
     if(R_FAILED(rs))
     {
         printWithArgs("Failed to init nifm services, with error code %x\n", rs);
         goto done;
     }
-    
+
     NifmInternetConnectionStatus nifmICS;
     rs = nifmGetInternetConnectionStatus(NULL, NULL, &nifmICS);
     if(R_FAILED(rs))
@@ -135,16 +135,16 @@ int main(int argc, char **argv)
         printWithArgs("Failed to get internet connection status, with error code %x\nPlease ensure your console is connected to the internet, and try again.\n", rs);
         goto done;
     }
-    
+
     if(nifmICS != NifmInternetConnectionStatus_Connected)
     {
         print("You're not connected to the internet. Please run this application again after connecting.");
         goto done;
     }
-    
+
     ntp_packet packet;
     memset(&packet, 0, sizeof(ntp_packet));
-    
+
     packet.li_vn_mode = (0 << 6) | (4 << 3) | 3; // LI 0 | Client version 4 | Mode 3 
 
     packet.txTm_s = htonl(NTP_TIMESTAMP_DELTA + time(NULL)); // Current networktime on the console
