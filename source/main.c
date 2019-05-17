@@ -101,7 +101,7 @@ int main(int argc, char **argv)
     const char *server_name = "0.pool.ntp.org";
     const uint16_t port = 123;
     int sockfd = -1;
-    
+
     consoleInit(NULL);
 
     Result rs = timeInitialize();
@@ -119,28 +119,28 @@ int main(int argc, char **argv)
         print("Failed to init socket services");
         goto done;
     }
-    
+
     print("Socket services initialized");
     
     ntp_packet packet;
     memset(&packet, 0, sizeof(ntp_packet));
-    
+
     packet.li = 0;
     packet.vn = 4; // NTP version 4
     packet.mode = 3; // Client mode
-    
+
     packet.txTm_s = htonl(NTP_TIMESTAMP_DELTA + time(NULL)); // Current networktime on the console
-    
+
     struct sockaddr_in serv_addr;
     struct hostent *server;
-    
+
     sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(sockfd < 0)
     {
         print("Failed to open socket");
         goto done;
     }
-    
+
     print("Opened socket");
     printWithArgs("Attempting to connect to %s\n", server_name);
     
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         printWithArgs("Gethostbyname failed: %x\n", errno);
         goto done;
     }
-    
+
     memset(&serv_addr, 0, sizeof(struct sockaddr_in));
     
     serv_addr.sin_family = AF_INET;
@@ -157,39 +157,39 @@ int main(int argc, char **argv)
     memcpy((char *)&serv_addr.sin_addr.s_addr, (char *)server->h_addr_list[0], 4);
     
     serv_addr.sin_port = htons(port);
-    
+
     errno = 0;
     int res = 0;
     if((res = connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
     {
         printWithArgs("Connect failed: %x %x\n", res, errno);
-        goto done;        
+        goto done;
     }
-    
+
     printWithArgs("Connected to 0.pool.ntp.org with result: %x %x\nSending time request...\n", res, errno);
     
     errno = 0;
     if((res = send(sockfd, (char *)&packet, sizeof(ntp_packet), 0)) < 0)
     {
         printWithArgs("Error writing to socket: %x %x\n", res, errno);
-        goto done;         
+        goto done;
     }
-    
+
     printWithArgs("Sent time request with result: %x %x, waiting for response...\n", res, errno);
-    
-    errno = 0; 
+
+    errno = 0;
     if((res = recv(sockfd, (char *)&packet, sizeof(ntp_packet), 0)) < sizeof(ntp_packet))
     {
         printWithArgs("Error reading from socket: %x %x\n", res, errno);
-        goto done;         
+        goto done;
     }
-    
+
     packet.txTm_s = ntohl(packet.txTm_s);
 
     time_t tim = (time_t) (packet.txTm_s - NTP_TIMESTAMP_DELTA);
-    
+
     printWithArgs("Time received from server: %s\n", ctime((const time_t *)&tim));
-    
+
     rs = timeSetCurrentTime(TimeType_NetworkSystemClock, (uint64_t)tim);
     if(R_FAILED(rs))
     {
@@ -197,22 +197,22 @@ int main(int argc, char **argv)
     }
     else
         print("Successfully set NetworkSystemClock\n");
-    
+
     rs = setsysInitialize();
     if(R_FAILED(rs))
     {
         printWithArgs("setsysInitialize failed, %x\n", rs);
         goto done;
     }
-    
+
     bool internetTimeSync;
     rs = setsysGetFlag(60, &internetTimeSync);
     if(R_FAILED(rs))
     {
         printWithArgs("Unable to detect if internet time sync is enabled, %x\n", rs);
-        goto done;        
+        goto done;
     }
-    
+
     if(internetTimeSync == false)
     {
         print("Internet time sync is not enabled (enabling it will correct the time on the home screen, and this prompt will not appear again).\nPress A to enable internet time sync (and restart the console), or PLUS to quit.");
@@ -233,14 +233,14 @@ int main(int argc, char **argv)
                     bpcRebootSystem();
                     bpcExit();
                 }
-                
+
                 printWithArgs("Unable to enable internet time sync, %x\n", rs);
             }
 
             consoleUpdate(NULL);
         }
     }
-    
+
 done:
     print("Press PLUS to quit.");
 
@@ -251,7 +251,7 @@ done:
         u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
 
         if (kDown & KEY_PLUS) break;
-        
+
         consoleUpdate(NULL);
     }
 cleanup:
