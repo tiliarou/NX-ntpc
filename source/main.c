@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 {
     const char *server_name = "0.pool.ntp.org";
     const uint16_t port = 123;
-    int sockfd = 0;
+    int sockfd = -1;
     
     consoleInit(NULL);
 
@@ -255,7 +255,8 @@ done:
         consoleUpdate(NULL);
     }
 cleanup:
-    close(sockfd);
+    if(sockfd != -1)
+        close(sockfd);
     serviceCleanup();
     return 0;
 }
