@@ -47,9 +47,7 @@ Additionally, the ntp_packet struct uses code licensed under the BSD 3-clause. S
 // Struct adapted from https://github.com/lettier/ntpclient , see LICENSE-THIRD-PARTY for more information.
 typedef struct
 {
-  unsigned mode: 3;        // 3 = client, others are values we don't care about
-  unsigned vn: 3;          // Protocol version. Currently 4.
-  unsigned li: 2;          // leap second adjustment.
+  uint8_t li_vn_mode;      // li: two bits, leap indicator. vn: three bits, protocol version number. mode: three bits, client mode.
   
   uint8_t stratum;         // Stratum level of the local clock.
   uint8_t poll;            // Maximum interval between successive messages.
@@ -75,6 +73,7 @@ typedef struct
 
 void serviceCleanup(void)
 {
+    nifmExit();
     setsysExit();
     socketExit();
     timeExit();
@@ -107,7 +106,7 @@ int main(int argc, char **argv)
     Result rs = timeInitialize();
     if(R_FAILED(rs))
     {
-        printWithArgs("Failed to init time services, error code %x", rs);
+        printWithArgs("Failed to init time services, error code %x\n", rs);
         goto done;
     }
     
@@ -116,18 +115,31 @@ int main(int argc, char **argv)
     rs = socketInitializeDefault();
     if(R_FAILED(rs))
     {
-        printWithArgs("Failed to init socket services, error code %x", rs);
+        printWithArgs("Failed to init socket services, error code %x\n", rs);
         goto done;
     }
 
     print("Socket services initialized");
     
+    rs = nifmInitialize();
+    if(R_FAILED(rs))
+    {
+        printWithArgs("Failed to init nifm services, with error code %x\n", rs);
+        goto done;
+    }
+    
+    NifmInternetConnectionStatus nifmICS;
+    rs = nifmGetInternetConnectionStatus(NULL, NULL, &nifmICS);
+    if(R_FAILED(rs))
+    {
+        printWithArgs("Failed to get internet connection status, with error code %x\nPlease ensure your console is connected to the internet, and try again.\n", rs);
+        goto done;
+    }
+    
     ntp_packet packet;
     memset(&packet, 0, sizeof(ntp_packet));
-
-    packet.li = 0;
-    packet.vn = 4; // NTP version 4
-    packet.mode = 3; // Client mode
+    
+    packet.li_vn_mode = (0 << 6) | (4 << 3) | 3; // LI 0 | Client version 4 | Mode 3 
 
     packet.txTm_s = htonl(NTP_TIMESTAMP_DELTA + time(NULL)); // Current networktime on the console
 
