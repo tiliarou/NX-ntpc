@@ -136,6 +136,12 @@ int main(int argc, char **argv)
         goto done;
     }
     
+    if(nifmICS != NifmInternetConnectionStatus_Connected)
+    {
+        print("You're not connected to the internet. Please run this application again after connecting.");
+        goto done;
+    }
+    
     ntp_packet packet;
     memset(&packet, 0, sizeof(ntp_packet));
     
