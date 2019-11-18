@@ -80,9 +80,9 @@ int main(int argc, char* argv[]) {
     while (appletMainLoop()) {
         printf(
             "\n\n\n"
-            "Press: UP/DOWN to change day | LEFT/RIGHT to change hour\n"
-            "       A to confirm time     | Y to reset to current time (ntp.org time server)\n"
-            "                             | + to quit\n\n\n");
+            "Press: UP/DOWN to change hour | LEFT/RIGHT to change day\n"
+            "       A to confirm time      | Y to reset to current time (ntp.org time server)\n"
+            "                              | + to quit\n\n\n");
 
         int dayChange = 0, hourChange = 0;
         while (appletMainLoop()) {
