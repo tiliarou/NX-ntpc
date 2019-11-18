@@ -52,7 +52,9 @@ bool nifmInternetIsConnected() {
 
 Result ntpGetTime(time_t *p_resultTime) {
     if (!nifmInternetIsConnected()) {
-        printf("You're not connected to the Internet. Please run this application again after connecting.\n");
+        printf(
+            "You're not connected to the Internet.\n"
+            "Please run try again after connecting.\n");
         return -1;
     }
 

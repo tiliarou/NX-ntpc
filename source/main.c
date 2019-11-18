@@ -118,15 +118,17 @@ int main(int argc, char* argv[]) {
                 break;
             } else if (kDown & KEY_Y) {
                 printf("\n\n\n");
-                ntpGetTime(&timeToSet);
-                p_tm_timeToSet = localtime(&timeToSet);
-                setNetworkSystemClock(timeToSet);
+                Result rs = ntpGetTime(&timeToSet);
+                if (R_SUCCEEDED(rs)) {
+                    p_tm_timeToSet = localtime(&timeToSet);
+                    setNetworkSystemClock(timeToSet);
+                }
                 break;
             }
 
             timeToSet = mktime(p_tm_timeToSet);
 
             consoleUpdate(NULL);
-        }        
+        }
     }
 }
