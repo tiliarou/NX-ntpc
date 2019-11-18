@@ -1,196 +1,140 @@
 /* This is free and unencumbered software released into the public domain.
 
-Anyone is free to copy, modify, publish, use, compile, sell, or
-distribute this software, either in source code form or as a compiled
-binary, for any purpose, commercial or non-commercial, and by any
-means.
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, either in source code form or
+as a compiled binary, for any purpose, commercial or non-commercial, and by any means.
 
-In jurisdictions that recognize copyright laws, the author or authors
-of this software dedicate any and all copyright interest in the
-software to the public domain. We make this dedication for the benefit
-of the public at large and to the detriment of our heirs and
-successors. We intend this dedication to be an overt act of
-relinquishment in perpetuity of all present and future rights to this
-software under copyright law.
+In jurisdictions that recognize copyright laws, the author or authors of this software dedicate any and all copyright
+interest in the software to the public domain. We make this dedication for the benefit of the public at large and to
+the detriment of our heirs and successors. We intend this dedication to be an overt act of relinquishment in perpetuity
+of all present and future rights to this software under copyright law.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-For more information, please refer to <http://unlicense.org>
+For more information, please refer to <https://unlicense.org> */
 
-Additionally, one struct uses code licensed under the BSD 3-clause. See LICENSE for more information. */
-
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <errno.h>
-
 #include <switch.h>
 
- #define NTP_TIMESTAMP_DELTA 2208988800ull
+#include "ntp.h"
 
-// https://www.cisco.com/c/en/us/about/press/internet-protocol-journal/back-issues/table-contents-58/154-ntp.html
-// Struct adapted from https://github.com/lettier/ntpclient , see LICENSE
-typedef struct
-{
-  unsigned mode: 3;        // 3 = client, others are values we don't care about
-  unsigned vn: 3;          // Protocol version. Currently 4.
-  unsigned li: 2;          // leap second adjustment.
-  
-  uint8_t stratum;         // Stratum level of the local clock.
-  uint8_t poll;            // Maximum interval between successive messages.
-  uint8_t precision;       // Precision of the local clock.
-
-  uint32_t rootDelay;      // Total round trip delay time.
-  uint32_t rootDispersion; // Max error allowed from primary clock source.
-  uint32_t refId;          // Reference clock identifier.
-
-  uint32_t refTm_s;        // Reference time-stamp seconds.
-  uint32_t refTm_f;        // Reference time-stamp fraction of a second.
-
-  uint32_t origTm_s;       // Originate time-stamp seconds.
-  uint32_t origTm_f;       // Originate time-stamp fraction of a second.
-
-  uint32_t rxTm_s;         // Received time-stamp seconds.
-  uint32_t rxTm_f;         // Received time-stamp fraction of a second.
-
-  uint32_t txTm_s;         // Transmit time-stamp seconds.
-  uint32_t txTm_f;         // Transmit time-stamp fraction of a second.
-} ntp_packet;
-
-int main(int argc, char **argv)
-{
-    const char *server_name = "0.pool.ntp.org";
-    const uint16_t port = 123;
-    int sockfd = 0;
-    
-    gfxInitDefault();
-    consoleInit(NULL);
-
-    Result rs = timeInitialize();
-    if(R_FAILED(rs))
-    {
-        printf("Failed to init time services\n");
-        goto done;
+bool setsysInternetTimeSyncIsOn() {
+    Result rs = setsysInitialize();
+    if (R_FAILED(rs)) {
+        printf("setsysInitialize failed, %x\n", rs);
+        return false;
     }
-    
-    printf("Time services initialized\n");
-    rs = socketInitializeDefault();
-    if(R_FAILED(rs))
-    {
-        printf("Failed to init socket services\n");
-        goto done;
-    }
-    
-    printf("Socket services initialized\n");
-    
-    ntp_packet packet;
-    memset(&packet, 0, sizeof(ntp_packet));
-    
-    packet.li = 0;
-    packet.vn = 4; // NTP version 4
-    packet.mode = 3; // Client mode
-    
-    packet.txTm_s = htonl(NTP_TIMESTAMP_DELTA + time(NULL)); // Current networktime on the console
-    
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
-    
-    sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if(sockfd < 0)
-    {
-        printf("Failed to open socket\n");
-        goto done;
-    }
-    
-    printf("Opened socket\n");
-    
-    printf("Attempting to connect to %s\n", server_name);
-        
-    if((server = gethostbyname(server_name)) == NULL)
-    {
-        printf("Gethostbyname failed: %x\n", errno);
-        goto done;
-    }
-    
-    memset(&serv_addr, 0, sizeof(struct sockaddr_in));
-    
-    serv_addr.sin_family = AF_INET;
-    
-    memcpy((char *)&serv_addr.sin_addr.s_addr, (char *)server->h_addr_list[0], 4);
-    
-    serv_addr.sin_port = htons(port);
-    
-    errno = 0;
-    int res = 0;
-    if((res = connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
-    {
-        printf("Connect failed: %x %x\n", res, errno);
-        goto done;        
-    }
-    
-    printf("Connected to 0.pool.ntp.org with result: %x %x\nSending time request...\n", res, errno);
-    
-    errno = 0;
-    if((res = send(sockfd, (char *)&packet, sizeof(ntp_packet), 0)) < 0)
-    {
-        printf("Error writing to socket: %x %x\n", res, errno);
-        goto done;         
-    }
-    
-    printf("Sent time request with result: %x %x, waiting for response...\n", res, errno);
-    
-    errno = 0; 
-    if((res = recv(sockfd, (char *)&packet, sizeof(ntp_packet), 0)) < sizeof(ntp_packet))
-    {
-        printf("Error reading from socket: %x %x\n", res, errno);
-        goto done;         
-    }
-    
-    packet.txTm_s = ntohl(packet.txTm_s);
 
-    time_t tim = (time_t) (packet.txTm_s - NTP_TIMESTAMP_DELTA);
-    
-    printf("Time received from server: %s\n", ctime((const time_t *)&tim));
- 
-    rs = timeSetCurrentTime(TimeType_NetworkSystemClock, (uint64_t)tim);
-    if(R_FAILED(rs))
-    {
-        printf("Failed to set NetworkSystemClock, %x\n", rs);
+    bool internetTimeSyncIsOn;
+    rs = setsysGetFlag(60, &internetTimeSyncIsOn);
+    setsysExit();
+    if (R_FAILED(rs)) {
+        printf("Unable to detect if Internet time sync is enabled, %x\n", rs);
+        return false;
     }
-    else
-        printf("Successfully set NetworkSystemClock\n");
-    
-done:
-    close(sockfd);
-    printf("Press PLUS to quit.\n");
 
-    while(appletMainLoop())
-    {
+    return internetTimeSyncIsOn;
+}
+
+bool setNetworkSystemClock(time_t time) {
+    Result rs = timeSetCurrentTime(TimeType_NetworkSystemClock, (uint64_t)time);
+    if (R_FAILED(rs)) {
+        printf("timeSetCurrentTime failed with %x\n", rs);
+        return false;
+    }
+    printf("Successfully set NetworkSystemClock.\n");
+    return true;
+}
+
+int consoleExitWithMsg(char* msg) {
+    printf("%s\n\nPress + to quit...", msg);
+
+    while (appletMainLoop()) {
         hidScanInput();
-
         u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
 
-        if (kDown & KEY_PLUS) break;
+        if (kDown & KEY_PLUS) {
+            consoleExit(NULL);
+            return 0;  // return to hbmenu
+        }
 
-        gfxFlushBuffers();
-        gfxSwapBuffers();
+        consoleUpdate(NULL);
     }
-    
-    socketExit();
-    timeExit();
-    gfxExit();
+    consoleExit(NULL);
     return 0;
+}
+
+int main(int argc, char* argv[]) {
+    consoleInit(NULL);
+    printf("SwitchTime v0.1.0\n\n");
+
+    if (!setsysInternetTimeSyncIsOn()) {
+        return consoleExitWithMsg("Internet time sync is not enabled. Please enable it in System Settings.");
+    }
+
+    // Main loop
+    while (appletMainLoop()) {
+        printf(
+            "\n\n\n"
+            "Press: UP/DOWN to change hour | LEFT/RIGHT to change day\n"
+            "       A to confirm time      | Y to reset to current time (ntp.org time server)\n"
+            "                              | + to quit\n\n\n");
+
+        int dayChange = 0, hourChange = 0;
+        while (appletMainLoop()) {
+            hidScanInput();
+            u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
+
+            if (kDown & KEY_PLUS) {
+                consoleExit(NULL);
+                return 0;  // return to hbmenu
+            }
+
+            time_t currentTime;
+            Result rs = timeGetCurrentTime(TimeType_NetworkSystemClock, (u64*)&currentTime);
+            if (R_FAILED(rs)) {
+                printf("timeGetCurrentTime failed with %x", rs);
+                return consoleExitWithMsg("");
+            }
+
+            struct tm* p_tm_timeToSet = localtime(&currentTime);
+            p_tm_timeToSet->tm_mday += dayChange;
+            p_tm_timeToSet->tm_hour += hourChange;
+            time_t timeToSet = mktime(p_tm_timeToSet);
+
+            if (kDown & KEY_A) {
+                printf("\n\n\n");
+                setNetworkSystemClock(timeToSet);
+                break;
+            }
+
+            if (kDown & KEY_Y) {
+                printf("\n\n\n");
+                rs = ntpGetTime(&timeToSet);
+                if (R_SUCCEEDED(rs)) {
+                    setNetworkSystemClock(timeToSet);
+                }
+                break;
+            }
+
+            if (kDown & KEY_LEFT) {
+                dayChange--;
+            } else if (kDown & KEY_RIGHT) {
+                dayChange++;
+            } else if (kDown & KEY_DOWN) {
+                hourChange--;
+            } else if (kDown & KEY_UP) {
+                hourChange++;
+            }
+
+            char timeToSetStr[25];
+            strftime(timeToSetStr, sizeof timeToSetStr, "%c", p_tm_timeToSet);
+            printf("\rTime to set: %s", timeToSetStr);
+            consoleUpdate(NULL);
+        }
+    }
 }

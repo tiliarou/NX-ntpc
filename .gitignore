@@ -1,0 +1,8 @@
+**/build
+**/.vs
+**/out
+*.elf
+*.nacp
+*.nro
+*.nso
+*.pfs0
