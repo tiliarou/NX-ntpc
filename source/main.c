@@ -58,30 +58,31 @@ bool setNetworkSystemClock(time_t time) {
     return true;
 }
 
+int consoleExitWithMsg(char* msg) {
+    printf("%s\n\nPress + to quit...", msg);
+
+    while (appletMainLoop()) {
+        hidScanInput();
+        u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
+
+        if (kDown & KEY_PLUS) {
+            consoleExit(NULL);
+            return 0;  // return to hbmenu
+        }
+
+        consoleUpdate(NULL);
+    }
+    consoleExit(NULL);
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
     consoleInit(NULL);
     printf("SwitchTime v0.1.0\n\n");
 
     if (!setsysInternetTimeSyncIsOn()) {
-        printf(
-            "Internet time sync is not enabled. Please enable it in System Settings.\n\n"
-            "Press + to quit...\n");
-
-        while (appletMainLoop()) {
-            hidScanInput();
-            u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
-
-            if (kDown & KEY_PLUS) {
-                consoleExit(NULL);
-                return 0;  // return to hbmenu
-            }
-
-            consoleUpdate(NULL);
-        }
+        return consoleExitWithMsg("Internet time sync is not enabled. Please enable it in System Settings.");
     }
-
-    time_t timeToSet = time(NULL);
-    struct tm* p_tm_timeToSet = localtime(&timeToSet);
 
     // Main loop
     while (appletMainLoop()) {
@@ -91,11 +92,8 @@ int main(int argc, char* argv[]) {
             "       A to confirm time     | Y to reset to current time (ntp.org time server)\n"
             "                             | + to quit\n\n\n");
 
+        int dayChange = 0, hourChange = 0;
         while (appletMainLoop()) {
-            char timeStr[25];
-            strftime(timeStr, sizeof timeStr, "%c", p_tm_timeToSet);
-            printf("\rTime to set: %s", timeStr);
-
             hidScanInput();
             u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
 
@@ -104,30 +102,46 @@ int main(int argc, char* argv[]) {
                 return 0;  // return to hbmenu
             }
 
-            if (kDown & KEY_LEFT) {
-                p_tm_timeToSet->tm_mday--;
-            } else if (kDown & KEY_RIGHT) {
-                p_tm_timeToSet->tm_mday++;
-            } else if (kDown & KEY_DOWN) {
-                p_tm_timeToSet->tm_hour--;
-            } else if (kDown & KEY_UP) {
-                p_tm_timeToSet->tm_hour++;
-            } else if (kDown & KEY_A) {
+            time_t currentTime;
+            Result rs = timeGetCurrentTime(TimeType_NetworkSystemClock, (u64*)&currentTime);
+            if (R_FAILED(rs)) {
+                printf("timeGetCurrentTime failed with %x", rs);
+                return consoleExitWithMsg("");
+            }
+
+            struct tm* p_tm_timeToSet = localtime(&currentTime);
+            p_tm_timeToSet->tm_mday += dayChange;
+            p_tm_timeToSet->tm_hour += hourChange;
+            time_t timeToSet = mktime(p_tm_timeToSet);
+
+            if (kDown & KEY_A) {
                 printf("\n\n\n");
                 setNetworkSystemClock(timeToSet);
                 break;
-            } else if (kDown & KEY_Y) {
+            }
+
+            if (kDown & KEY_Y) {
                 printf("\n\n\n");
-                Result rs = ntpGetTime(&timeToSet);
+                rs = ntpGetTime(&timeToSet);
                 if (R_SUCCEEDED(rs)) {
-                    p_tm_timeToSet = localtime(&timeToSet);
                     setNetworkSystemClock(timeToSet);
                 }
                 break;
             }
 
-            timeToSet = mktime(p_tm_timeToSet);
+            if (kDown & KEY_LEFT) {
+                dayChange--;
+            } else if (kDown & KEY_RIGHT) {
+                dayChange++;
+            } else if (kDown & KEY_DOWN) {
+                hourChange--;
+            } else if (kDown & KEY_UP) {
+                hourChange++;
+            }
 
+            char timeToSetStr[25];
+            strftime(timeToSetStr, sizeof timeToSetStr, "%c", p_tm_timeToSet);
+            printf("\rTime to set: %s", timeToSetStr);
             consoleUpdate(NULL);
         }
     }
