@@ -52,7 +52,7 @@ bool nifmInternetIsConnected() {
 
 Result ntpGetTime(time_t *p_resultTime) {
     if (!nifmInternetIsConnected()) {
-        printf("You're not connected to the Internet. Please run this application again after connecting.");
+        printf("You're not connected to the Internet. Please run this application again after connecting.\n");
         return -1;
     }
 
@@ -61,7 +61,7 @@ Result ntpGetTime(time_t *p_resultTime) {
         printf("Failed to init socket services, error code %x\n", rs);
         return rs;
     }
-    printf("Socket services initialized");
+    printf("Socket services initialized\n");
 
     int sockfd = -1;
     const char *server_name = "0.pool.ntp.org";
@@ -78,13 +78,12 @@ Result ntpGetTime(time_t *p_resultTime) {
     struct hostent *server;
 
     sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    printf("SOCKETFD IS: 0x%x\n", sockfd);
     if (sockfd < 0) {
         printf("Failed to open socket with error code %x\n", errno);
         goto failed;
     }
 
-    printf("Opened socket");
+    printf("Opened socket\n");
     printf("Attempting to connect to %s\n", server_name);
     errno = 0;
     if ((server = gethostbyname(server_name)) == NULL) {
